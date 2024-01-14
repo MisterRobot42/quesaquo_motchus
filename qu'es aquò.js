@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         qu'es aquò (Motchus)
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.0.1
 // @description  Donne la définition du mot du jour Motchus
 // @author       MisterRobot42
 // @match        https://motchus.fr/*
@@ -51,18 +51,26 @@
         return definitions;
     }
 
+    // Fonction pour normaliser les chaînes de caractères (retirer les accents)
+    function normaliserChaine(str) {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    }
+
     // Cherche une définition qui commence par un mot spécifié et affiche cette définition dans une bulle flottante.
     function findAndDisplayDefinitionStartingWith(definitions, startWith) {
+        let motNormalise = normaliserChaine(startWith);
         for (let key in definitions) {
-            if (key.toLowerCase().startsWith(startWith.toLowerCase())) {
+            if (normaliserChaine(key).startsWith(motNormalise)) {
                 motTrouve = true;
                 createBox(`'${key} : ${definitions[key]}'`);
+                break;
             }
         }
         if(!motTrouve){
             console.log("Définition non trouvé pour le mot " + startWith);
         }
     }
+
 
     // TODO : utiliser la recherche Google si le mot n'est pas trouvé dans les définitions
     function rechercherMot(mot) {
