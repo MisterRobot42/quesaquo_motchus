@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         qu'es aquò (Motchus)
 // @namespace    http://tampermonkey.net/
-// @version      1.0.1
+// @version      1.0.2
 // @description  Donne la définition du mot du jour Motchus
 // @author       MisterRobot42
 // @match        https://motchus.fr/*
@@ -15,7 +15,7 @@
     let rechercheEffectuee = false;
     let definitions = await fetchDefinitions();
 
-    // Crée une bulle flottante sur la page pour afficher du texte.
+// Crée une bulle flottante sur la page pour afficher du texte.
     function createBox(text) {
         var box = document.createElement('div');
         box.id = 'customBox';
@@ -27,7 +27,7 @@
         });
     }
 
-    // Récupère le contenu du fichier JS contenant les définitions des mots.
+// Récupère le contenu du fichier JS contenant les définitions des mots.
     async function fetchDefinitions() {
         try {
             const response = await fetch('https://motchus.fr/js/mots/definitionMotsATrouver.js');
@@ -38,7 +38,7 @@
         }
     }
 
-    // Extrait les définitions des mots à l'aide d'une expression régulière et les stocke dans un objet.
+// Extrait les définitions des mots à l'aide d'une expression régulière et les stocke dans un objet.
     function extractDefinitions(text) {
         const regex = /'([^']+) : ([^']+)'/g;
         let match;
@@ -47,26 +47,42 @@
         while ((match = regex.exec(text)) !== null) {
             definitions[match[1]] = match[2];
         }
-        console.log(definitions);
         return definitions;
     }
 
-    // Fonction pour normaliser les chaînes de caractères (retirer les accents)
+// Fonction pour normaliser les chaînes de caractères (retirer les accents)
     function normaliserChaine(str) {
         return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
     }
 
-    // Cherche une définition qui commence par un mot spécifié et affiche cette définition dans une bulle flottante.
-    function findAndDisplayDefinitionStartingWith(definitions, startWith) {
+// Cherche une définition qui commence par un mot spécifié et affiche cette définition dans une bulle flottante.
+  function findAndDisplayDefinitionStartingWith(definitions, startWith) {
         let motNormalise = normaliserChaine(startWith);
         for (let key in definitions) {
-            if (normaliserChaine(key).startsWith(motNormalise)) {
+            let pattern = /^["']?([À-ÿa-zA-Z'’-]+(?:\s[À-ÿa-zA-Z'’-]+)*)(?:\sou\s[À-ÿa-zA-Z'’-]+)*/;
+            let match = key.match(pattern);
+            if (match && normaliserChaine(match[1]) === motNormalise) {
                 motTrouve = true;
                 createBox(`'${key} : ${definitions[key]}'`);
-                break;
+                return;
             }
         }
-        if(!motTrouve){
+
+       // On ratisse plus large
+        for (let key in definitions) {
+            if (normaliserChaine(key).includes(motNormalise)) {
+                motTrouve = true;
+                createBox(`'${key} : ${definitions[key]}'`);
+                return;
+            }
+        }
+
+        // Recherche du mot au singulier dans le cas des pluriels
+        if (!motTrouve && motNormalise.endsWith('S')) {
+            findAndDisplayDefinitionStartingWith(definitions, motNormalise.slice(0, -1));
+        }
+
+        if (!motTrouve) {
             console.log("Définition non trouvé pour le mot " + startWith);
         }
     }
